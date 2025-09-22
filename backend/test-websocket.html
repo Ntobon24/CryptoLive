@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Crypto WebSocket</title>
+    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .connected { background: #d4edda; color: #155724; }
+        .disconnected { background: #f8d7da; color: #721c24; }
+        .crypto { display: flex; justify-content: space-between; padding: 10px; margin: 5px 0; background: #f8f9fa; border-radius: 5px; }
+        .log { background: #f8f9fa; padding: 10px; height: 200px; overflow-y: auto; border: 1px solid #ddd; }
+    </style>
+</head>
+<body>
+    <h1>🚀 Test Crypto WebSocket</h1>
+    
+    <div id="status" class="status disconnected">Disconnected</div>
+    
+    <button onclick="connect()">Conectar</button>
+    <button onclick="disconnect()">Desconectar</button>
+    <button onclick="requestPrices()">Solicitar Precios</button>
+    
+    <h2>Precios en Tiempo Real:</h2>
+    <div id="prices"></div>
+    
+    <h3>Log:</h3>
+    <div id="log" class="log"></div>
+
+    <script>
+        let socket = null;
+        
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const time = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `[${time}] ${message}<br>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+        
+        function updateStatus(connected) {
+            const status = document.getElementById('status');
+            if (connected) {
+                status.textContent = '✅ Conectado';
+                status.className = 'status connected';
+            } else {
+                status.textContent = '❌ Desconectado';
+                status.className = 'status disconnected';
+            }
+        }
+        
+        function connect() {
+            if (socket) socket.disconnect();
+            
+            log('🔄 Conectando a WebSocket...');
+            socket = io('http://localhost:3001/crypto');
+            
+            socket.on('connect', () => {
+                log('✅ Conectado exitosamente');
+                updateStatus(true);
+            });
+            
+            socket.on('disconnect', () => {
+                log('❌ Desconectado');
+                updateStatus(false);
+            });
+            
+            socket.on('crypto_update', (prices) => {
+                log(`📊 Recibidos ${prices.length} precios`);
+                updatePrices(prices);
+            });
+            
+            socket.on('connect_error', (error) => {
+                log(`❌ Error de conexión: ${error.message}`);
+                updateStatus(false);
+            });
+        }
+        
+        function disconnect() {
+            if (socket) {
+                socket.disconnect();
+                socket = null;
+                updateStatus(false);
+                log('🔌 Desconectado manualmente');
+            }
+        }
+        
+        function requestPrices() {
+            if (socket && socket.connected) {
+                socket.emit('get_crypto_prices');
+                log('📤 Solicitando precios...');
+            } else {
+                log('❌ No estás conectado');
+            }
+        }
+        
+        function updatePrices(prices) {
+            const pricesDiv = document.getElementById('prices');
+            pricesDiv.innerHTML = '';
+            
+            prices.forEach(crypto => {
+                const div = document.createElement('div');
+                div.className = 'crypto';
+                div.innerHTML = `
+                    <span><strong>${crypto.symbol}</strong></span>
+                    <span>$${crypto.price.toLocaleString()}</span>
+                    <span>${new Date(crypto.timestamp).toLocaleTimeString()}</span>
+                `;
+                pricesDiv.appendChild(div);
+            });
+        }
+        
+        // Auto-conectar al cargar
+        window.onload = () => {
+            log('🚀 Cliente de prueba cargado');
+            log('💡 Haz clic en "Conectar" para empezar');
+        };
+    </script>
+</body>
+</html>
