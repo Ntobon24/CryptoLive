@@ -13,3 +13,9 @@ Proyecto de dashboard de criptomonedas en tiempo real 🚀
 cd backend
 pnpm install
 pnpm start:dev
+
+### Frontend
+```bash
+cd frontend
+npm install
+npm run dev
